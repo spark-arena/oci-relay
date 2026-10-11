@@ -69,3 +69,14 @@ under [Apache-2.0](LICENSE).
 See [third-party notices](THIRD_PARTY_NOTICES.md) and
 [dependency licenses](THIRD_PARTY_LICENSES.txt). See
 [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+
+## Sparkrun feedback
+
+On hosts exposing `sparkrun.plugins.FEEDBACK_API_VERSION = 1`, the adapter
+publishes structured receiver stages, byte counters, rates, extraction/cache
+metrics, heartbeats, and verified outcomes. CLI messages remain available;
+library subscribers use `sctx.events`, and daemon consumers follow the job's
+`/v1/jobs/{job_id}/events` stream. Transfer totals use `upper_bound` semantics and
+must not be treated as exact completion percentages. Older hosts retain text
+logging. The Sparkrun [feedback guide](https://github.com/spark-arena/sparkrun/blob/main/docs/FEEDBACK.md)
+describes the public contract.
