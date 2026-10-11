@@ -138,6 +138,15 @@ def test_decoder_bundle_is_bound_to_archive_and_binary(tmp_path, monkeypatch, pr
         assert (cache / 'UNPIGZ_LICENSES.txt').read_bytes() == b'licenses'
 
 
+@pytest.mark.parametrize('key', ['arm64', 'linux/arm64'])
+def test_explicit_binary_does_not_require_a_release_decoder_bundle(tmp_path, key, monkeypatch):
+    binary = tmp_path / 'oci-relay'
+    sha = elf(binary)
+    monkeypatch.setattr(release, '__file__', str(tmp_path / 'no-release-metadata.py'))
+    settings = {'binary_paths': {key: str(binary)}, 'binary_sha256': {key: sha}}
+    assert release.acquire_decoder('arm64', settings, binary) is None
+
+
 def test_development_decoder_requires_explicit_opt_in(tmp_path):
     binary = tmp_path / 'oci-relay'
     elf(binary)

@@ -185,7 +185,7 @@ def acquire_decoder(arch: str, settings: dict, binary: Path) -> tuple[Path, str]
         helper = Path(settings["development_unpigz"]).expanduser()
         verify_elf(helper, arch)
         return helper, file_digest(helper)
-    if arch in settings.get("binary_paths", {}):
+    if any(key in settings.get("binary_paths", {}) for key in (arch, "linux/" + arch)):
         return None
     # Revalidate the archive, not an editable sidecar manifest. Legacy releases
     # have no helper and remain usable through the ordinary compressed import.
