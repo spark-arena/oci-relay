@@ -14,14 +14,18 @@ do not edit generated workflow YAML independently.
    ARM64 `ubuntu-24.04-arm`, and macOS ARM64 `macos-15`. The repo-tools binary
    package hook builds source-pinned musl/zlib/pigz, executes tests, and adds
    `unpigz`, `bundle.json` and `UNPIGZ_LICENSES.txt`. No QEMU or cross-architecture
-   helper execution. Dispatch the publish workflow before tagging to validate
+   helper execution. Windows AMD64 uses `windows-2025` and Windows ARM64 uses
+   `windows-11-arm`; those bundles contain `oci-relay.exe` and notices, without
+   `unpigz`. All five targets use `.tar.gz` archives. Windows support is
+   experimental until real Desktop/WSLC qualification is complete.
+   Dispatch the publish workflow before tagging to validate
    native artifacts. Review source pins in `scripts/native-dependencies.json`.
    Regenerate THIRD_PARTY_LICENSES.txt. Confirm LICENSE,
    COPYRIGHT and dependency notices are included in every binary archive.
    Verify plugin wheels and vendored copies contain the Apache-2.0 license and
    copyright notice.
-4. Review and commit the source and generated CI, then push to the public repository. A matching `vVERSION` tag triggers Linux amd64/arm64 archive builds plus
-   `checksums.txt`, plus the macOS arm64 archive. Local generation does not
+4. Review and commit the source and generated CI, then push to the public repository. A matching `vVERSION` tag triggers Linux amd64/arm64, macOS arm64,
+   and Windows amd64/arm64 archive builds plus `checksums.txt`. Local generation does not
    create or push that tag. See [platform qualification](platforms.md).
 5. Continue publishing release-matched source alongside binaries for reproducible
    builds. This is project policy, not an Apache-2.0 source-offer requirement. The Git tag
@@ -38,7 +42,9 @@ do not edit generated workflow YAML independently.
      "VERSION": {
        "linux/amd64": {"url": "https://github.com/OWNER/REPO/releases/download/vVERSION/oci-relay_VERSION_linux_amd64.tar.gz", "sha256": "ACTUAL_ARCHIVE_SHA256"},
        "linux/arm64": {"url": "https://github.com/OWNER/REPO/releases/download/vVERSION/oci-relay_VERSION_linux_arm64.tar.gz", "sha256": "ACTUAL_ARCHIVE_SHA256"},
-       "darwin/arm64": {"url": "https://github.com/OWNER/REPO/releases/download/vVERSION/oci-relay_VERSION_darwin_arm64.tar.gz", "sha256": "ACTUAL_ARCHIVE_SHA256"}
+       "darwin/arm64": {"url": "https://github.com/OWNER/REPO/releases/download/vVERSION/oci-relay_VERSION_darwin_arm64.tar.gz", "sha256": "ACTUAL_ARCHIVE_SHA256"},
+       "windows/amd64": {"url": "https://github.com/OWNER/REPO/releases/download/vVERSION/oci-relay_VERSION_windows_amd64.tar.gz", "sha256": "ACTUAL_ARCHIVE_SHA256"},
+       "windows/arm64": {"url": "https://github.com/OWNER/REPO/releases/download/vVERSION/oci-relay_VERSION_windows_arm64.tar.gz", "sha256": "ACTUAL_ARCHIVE_SHA256"}
      }
    }
    ```
@@ -56,7 +62,7 @@ do not edit generated workflow YAML independently.
    {
      "schema": 1,
      "repository": "https://github.com/spark-arena/oci-relay.git",
-     "version": "0.1.3",
+     "version": "0.1.4",
      "commit": "FULL_ADAPTER_COMMIT_SHA"
    }
    ```

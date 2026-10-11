@@ -1,6 +1,6 @@
 # Canonical release versions and generated GitHub CI configuration.
-oci-relay: 0.1.3
-sparkrun-oci-relay-plugin: 0.1.3
+oci-relay: 0.1.4
+sparkrun-oci-relay-plugin: 0.1.4
 
 go_toolchain:
   go: "1.26.9"
@@ -18,7 +18,7 @@ preferred_versions:
     ruff: "0.15.6"
 
 ci:
-  repo_tools_source: "git+https://github.com/scitrera/repo-tools.git@898be3f3408a0da7d5dee81d8752c06d2ac7bf23"
+  repo_tools_source: "git+https://github.com/scitrera/repo-tools.git@d4c2a585fd54e23a549ef61ada45de002beb79b0"
   check_generated_ci: true
   test_branches: [main, develop-next]
   only_workflows: [version-check, test-go, test-python, publish-go]
@@ -36,25 +36,45 @@ ci:
     extra_steps:
       - name: Check redistributed dependency licenses
         run: 'python3 scripts/dependency-licenses.py --check'
-    binary_platforms: [linux/amd64, linux/arm64, darwin/arm64]
+    binary_platforms: [linux/amd64, linux/arm64, darwin/arm64, windows/amd64, windows/arm64]
     binaries:
       - name: oci-relay
         project: oci-relay
         package: ./cmd/oci-relay
+        archive: tar.gz
         ldflags: "-s -w -buildid= -X github.com/spark-arena/oci-relay/internal/buildinfo.Version=$VERSION -X github.com/spark-arena/oci-relay/internal/buildinfo.Commit=$COMMIT"
         platform_runners:
           linux/amd64: ubuntu-24.04
           linux/arm64: ubuntu-24.04-arm
           darwin/arm64: macos-15
+          windows/amd64: windows-2025
+          windows/arm64: windows-11-arm
         setup_steps:
+          - name: Verify native runner architecture
+            run: |
+              test "$(go env GOHOSTOS)" = "${{ matrix.goos }}"
+              test "$(go env GOHOSTARCH)" = "${{ matrix.goarch }}"
           - name: Check native build prerequisites
+            if: runner.os != 'Windows'
             run: python3 --version && cc --version && make --version
           - name: Configure macOS loopback for multi-link tests
             if: runner.os == 'macOS'
             run: sudo ifconfig lo0 alias 127.0.0.2
           - name: Test Go on the native target
-            run: go test -race -count=1 ./...
-        package_command: python3 scripts/build-decoder.py
+            run: |
+              if [ "$RUNNER_OS" = Windows ]; then
+                export CGO_ENABLED=0
+                go test -count=1 ./internal/engine ./internal/privatefs ./internal/image ./internal/transfer ./internal/peer
+                go test -count=1 ./internal/source -run 'TestArchive|TestClassicArchive|TestRegistry'
+              else
+                go test -race -count=1 ./...
+              fi
+        package_command: |
+          if [ "$GOOS" = windows ]; then
+            "$BUNDLE_DIR/oci-relay.exe" version
+          else
+            python3 scripts/build-decoder.py
+          fi
         extra_files: [LICENSE, COPYRIGHT, README.md, THIRD_PARTY_NOTICES.md, THIRD_PARTY_LICENSES.txt]
   python:
     test_versions: ["3.12", "3.13"]

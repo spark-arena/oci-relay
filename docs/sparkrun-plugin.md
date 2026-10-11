@@ -21,9 +21,8 @@ Docker IDs to the launcher while preserving the requested recipe pin. Warm
 and offline runs can recover those bindings from private host receipts. See
 [digest-pinned recipes](registry-source.md#digest-pinned-recipes).
 
-Sparkrun `develop-next` can bundle the release adapter using its
-`vendor-oci-relay.py` script. Its `plugins.oci_relay` feature defaults on for
-every channel; explicit feature overrides take precedence.
+Sparkrun 0.4.0+ includes the bundled release adapter. Its `plugins.oci_relay`
+feature defaults on for every channel; explicit feature overrides take precedence.
 With the bundled provider enabled, normal `container_distribution_provider: auto`
 selects it. To opt out on any channel:
 
@@ -55,18 +54,21 @@ plugins:
 ```
 
 The installed distribution exposes the `sparkrun.plugins` entry point named
-`oci-relay`. Future bundling is an explicit operation described in [development](development.md#versions-ci-and-vendoring); choose
+`oci-relay`. Maintainers refresh the bundled adapter using `vendor-oci-relay.py`,
+as described in [development](development.md#versions-ci-and-vendoring). Choose
 one registration path and do not enable installed and bundled copies together.
 
 ## Binary distribution
 
-Execution hosts currently require Linux amd64/arm64. A Mac controller can
+Sparkrun SSH execution hosts currently require Linux amd64/arm64. A Mac controller can
 coordinate delegated execution on Linux cluster nodes without running a relay
-locally; see [platforms and controller placement](platforms.md). The standalone
-macOS arm64 archive does not yet enable a controller-local plugin source.
+locally; see [platforms and controller placement](platforms.md). Version 0.1.4
+adds Docker context/API connections for controller-local VM sources and
+experimental Windows x64/ARM64 bundles. Desktop and WSLC runtime qualification
+remains pending; see [Windows configuration](windows.md).
 
 For a locally supplied production binary, configure `binary_paths` and
-`binary_sha256` maps keyed by `amd64`/`arm64`. The controller verifies the ELF
+`binary_sha256` maps keyed by `OS/ARCH` (Linux also accepts `amd64`/`arm64`). The controller verifies the executable
 architecture and hash, stages it to each execution host, verifies the remote
 hash, and checks the version/protocol before use. Hosts do not need internet
 access. Offline mode never downloads a binary. `releases.json` pins the published archives for each supported architecture.

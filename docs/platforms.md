@@ -21,25 +21,26 @@ The updated plugin also selects the first Linux receiver as registry fetcher
 when a non-Linux controller has no explicit source host. That host must have the
 registry credentials; controller credentials are not silently forwarded.
 
-## Development support
+## Platform support
 
-The working tree adds Windows x64/ARM64 runtime support. These changes are
-**not included in the published v0.1.3 binaries**. Use a candidate built from
-this tree and its matching editable plugin during qualification.
+Version 0.1.4 adds experimental Windows x64/ARM64 runtime support and matching
+release bundles. Native build/test coverage is available; real Desktop/WSLC
+qualification remains open. Use the matching plugin and binary release.
 
 | Execution host | Runtime path | Qualification |
 |---|---|---|
 | Linux arm64 | Native overlay2/containerd and existing registry importer | Existing real-engine and cluster coverage |
 | Linux amd64 | Same implementation | Native CI; broader real-engine coverage remains open |
 | macOS arm64 | Standalone registry/layout sources; Docker context plus archive import | Native build/tests; Desktop runtime qualification remains open |
-| Windows x64/ARM64 | Registry/layout sources, Docker named pipe or TCP/TLS, archive import | Candidate builds and native CI tests; Desktop end-to-end qualification remains open |
+| Windows x64/ARM64 | Registry/layout sources, Docker named pipe or TCP/TLS, archive import | Experimental release builds and native CI tests; Desktop end-to-end qualification remains open |
 | Windows + WSLC | Experimental public CLI adapter, bounded archive import/export | CLI contract tests; real WSLC qualification remains open |
 
 The Windows qualification workflow runs tests on `windows-2025` and
 `windows-11-arm`, without QEMU, including a real local named-pipe HTTP server,
 protected credential-directory ACLs, binary subprocess pipes, and the transfer
 protocol. It does not install or qualify Docker Desktop or WSLC. Candidate
-artifacts are separate from the repo-tools-generated release pipeline.
+artifacts are separate from the repo-tools-generated release pipeline, which
+also tests and builds both Windows architectures on native runners.
 
 ## Docker connections
 
@@ -112,6 +113,6 @@ mask is applied to N1X: its Windows scheduler and core topology require their
 own qualification. Windows uses buffered file reads; Linux keeps its existing
 direct-read policy. Windows bundles do not require or advertise `unpigz`.
 
-Before a Windows release, run real Desktop and WSLC cold/warm imports, a mixed
+Before promoting Windows beyond experimental support, run real Desktop and WSLC cold/warm imports, a mixed
 Windows/Linux transfer, cancellation and disk-full cases. Qualification must
 include actual runtime image identities and cleanup, not only compilation.

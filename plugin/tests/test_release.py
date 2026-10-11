@@ -51,16 +51,27 @@ def test_offline_has_no_network_without_trusted_cache(tmp_path, monkeypatch, pin
 
 
 @pytest.mark.parametrize("symlink", [False, True])
-def test_cached_release_is_verified_and_reextracted(tmp_path, monkeypatch, symlink):
+@pytest.mark.parametrize("os_name,arch", [("linux", "arm64"), ("windows", "amd64"), ("windows", "arm64")])
+def test_cached_release_is_verified_and_reextracted(tmp_path, monkeypatch, symlink, os_name, arch):
     package = tmp_path / "package"
     package.mkdir()
     monkeypatch.setattr(release, "__file__", str(package / "release.py"))
-    cache = tmp_path / "cache" / release.__version__ / "linux-arm64"
+    cache = tmp_path / "cache" / release.__version__ / f"{os_name}-{arch}"
     cache.mkdir(parents=True)
     executable = tmp_path / "elf"
-    elf(executable)
+    if os_name == "windows":
+        payload = bytearray(512)
+        payload[:2] = b"MZ"
+        payload[60:64] = (128).to_bytes(4, "little")
+        payload[128:132] = b"PE\0\0"
+        payload[132:134] = (0x8664 if arch == "amd64" else 0xaa64).to_bytes(2, "little")
+        payload[152:154] = b"\x0b\x02"
+        executable.write_bytes(payload)
+    else:
+        elf(executable)
+    binary_name = "oci-relay.exe" if os_name == "windows" else "oci-relay"
     with tarfile.open(cache / "release.tar.gz", "w:gz") as archive:
-        entry = tarfile.TarInfo("oci-relay")
+        entry = tarfile.TarInfo(binary_name)
         if symlink:
             entry.type = tarfile.SYMTYPE
             entry.linkname = "/etc/passwd"
@@ -68,21 +79,22 @@ def test_cached_release_is_verified_and_reextracted(tmp_path, monkeypatch, symli
         else:
             entry.size = executable.stat().st_size
             archive.addfile(entry, io.BytesIO(executable.read_bytes()))
-    (package / "releases.json").write_text(json.dumps({release.__version__: {"linux/arm64": {
+    (package / "releases.json").write_text(json.dumps({release.__version__: {f"{os_name}/{arch}": {
         "url": "https://example.invalid/release.tar.gz", "sha256": release.file_digest(cache / "release.tar.gz")
     }}}))
-    (cache / "oci-relay").write_bytes(b"tampered cached executable")
+    (cache / binary_name).write_bytes(b"tampered cached executable")
     settings = {"cache_dir": str(tmp_path / "cache")}
     if symlink:
         with pytest.raises(release.BinaryInvalid, match="regular"):
-            release.acquire("arm64", settings, offline=True)
+            release.acquire(arch, settings, offline=True, os_name=os_name)
     else:
-        binary, sha = release.acquire("arm64", settings, offline=True)
+        binary, sha = release.acquire(arch, settings, offline=True, os_name=os_name)
+        assert binary.name == binary_name
         assert binary.read_bytes() == executable.read_bytes()
         assert sha == release.file_digest(executable)
 
 
-@pytest.mark.parametrize('problem', ['', 'hash', 'platform', 'symlink', 'duplicate'])
+@pytest.mark.parametrize('problem', ['', 'hash', 'platform', 'symlink', 'duplicate', 'missing-stream'])
 def test_decoder_bundle_is_bound_to_archive_and_binary(tmp_path, monkeypatch, problem):
     package = tmp_path / 'package'
     package.mkdir()
@@ -112,6 +124,8 @@ def test_decoder_bundle_is_bound_to_archive_and_binary(tmp_path, monkeypatch, pr
             tar.addfile(entry, io.BytesIO(content) if entry.isfile() else None)
     (package / 'releases.json').write_text(json.dumps({release.__version__: {'linux/arm64': {
         'url': 'https://example.invalid/release.tar.gz', 'sha256': release.file_digest(cache / 'release.tar.gz')}}}))
+    if problem == 'missing-stream':
+        monkeypatch.setattr(tarfile.TarFile, 'extractfile', lambda *args: None)
     if problem:
         with pytest.raises(release.BinaryInvalid):
             release.acquire_decoder('arm64', {}, binary)

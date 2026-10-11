@@ -17,14 +17,21 @@ resource limits, and reports progress.
 
 Native access supports qualified rootful Linux Docker 29+ stores. Real-engine
 qualification currently covers Linux arm64. Linux amd64, Linux arm64 and macOS
-arm64 bundles are built and tested on native runners. See [platform support](docs/platforms.md), [storage compatibility](docs/storage-compatibility.md) and
+arm64 bundles are built and tested on native runners. Windows x64/ARM64 bundles
+are experimental, with native CI coverage; Docker Desktop and WSLC runtime
+qualification remains pending. See [platform support](docs/platforms.md), [storage compatibility](docs/storage-compatibility.md) and
 [validation](docs/validation.md). Published binaries are available from [GitHub releases](https://github.com/spark-arena/oci-relay/releases).
 
-## Quick start with Sparkrun
+## Sparkrun integration
 
-Requires Bash, `uv`, Go 1.26.9+, Python 3.12+, a C compiler, make, and a Sparkrun `develop-next` / 0.4.0
-checkout with image-distribution and pre-pull API 1. The default checkout path
-is `../oss-sparkrun`; set `SPARKRUN_CHECKOUT` to use another location.
+Sparkrun 0.4.0+ includes OCI Relay and enables it by default on every channel.
+Run your recipes normally; Sparkrun handles relay binary setup, image distribution,
+and progress reporting. See [plugin configuration](docs/sparkrun-plugin.md) for
+optional tuning and opt-out settings.
+
+## Development quick start
+
+For contributors working on the relay or plugin, run from this checkout:
 
 ```bash
 source dev.sh
@@ -32,12 +39,9 @@ sparkrun run YOUR_RECIPE
 deactivate
 ```
 
-The setup builds the relay and native decoder, installs both projects editably, and enables the
-plugin in a private development configuration. It preserves normal user
-configuration and keeps the plugin outside Sparkrun's source tree. Image-transfer
-progress is visible by default. The bundled plugin defaults on for every channel;
-this setup explicitly selects the editable adapter. See [development setup](docs/development.md)
-for details or [plugin configuration](docs/sparkrun-plugin.md) for manual setup.
+This builds the relay and native decoder and installs OCI Relay and Sparkrun
+editably, selecting the development adapter in a private configuration. See
+[development setup](docs/development.md) for prerequisites and checkout paths.
 
 To build the standalone executable:
 
@@ -55,7 +59,7 @@ CGO_ENABLED=0 go build -trimpath -o bin/oci-relay ./cmd/oci-relay
 - [Bundled receiver decoding](docs/bundled-decoder.md): helper installation, disk budgets, and fallback.
 - [Storage compatibility](docs/storage-compatibility.md): native access, layer
   discovery, mixed stores, and hash identities.
-- [Windows and runtime connections](docs/platforms.md): candidate support, Desktop/WSLC paths, and qualification limits.
+- [Windows and runtime connections](docs/platforms.md): experimental support, Desktop/WSLC paths, and qualification limits.
 - [Standalone commands](docs/standalone.md): sessions, events, and transfer-only validation.
 - [Development](docs/development.md): tests, CI, versions, and vendoring;
   [release procedure](docs/releasing.md).

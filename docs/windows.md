@@ -3,10 +3,11 @@ SPDX-FileCopyrightText: 2026 Spark Arena
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Windows development examples
+# Windows (experimental)
 
-Use the working-tree Go executable and editable plugin. Windows runtime support
-is undergoing qualification; v0.1.3 release binaries do not contain these changes.
+OCI Relay v0.1.4 adds experimental Windows x64 and ARM64 release bundles.
+Native CI validates the executable and portable APIs; real Docker Desktop and
+WSLC end-to-end qualification remains pending. Use the matching v0.1.4 plugin.
 See [platform support](platforms.md) for the tested scope and remaining work.
 
 ## Standalone receiver
@@ -48,39 +49,22 @@ managed secure tunnel.
 
 ## Native Windows control node with Linux receivers
 
-Use Sparkrun `develop-next` with the Windows process-cancellation update and
-install the plugin editably using the Windows Python environment:
-
-```powershell
-uv venv --python 3.13 .venv
-uv pip install --python .venv/Scripts/python.exe -e ../oss-sparkrun -e .
-. .venv/Scripts/Activate.ps1
-```
+Use Sparkrun 0.4.0+ with the bundled OCI Relay v0.1.4 adapter. Contributors can
+instead install matching Sparkrun and OCI Relay checkouts editably.
 
 Configure Sparkrun as shown below. Ordinary
 delegated Linux distribution downloads Linux binaries on the controller and
 stages them over SSH; it needs no Windows relay binary.
 
-For a Windows-local image source, configure both Windows and Linux candidate
-binaries from the same working tree. Hashes below are placeholders; calculate
-the actual hashes with `Get-FileHash -Algorithm SHA256`. Do not substitute
-unverified download hashes.
+For a Windows-local image source, the plugin downloads and verifies the matching
+Windows and Linux release bundles and stages Linux binaries over SSH. Configure
+the controller's Docker Desktop context if needed:
 
 ```yaml
 container_distribution_provider: oci-relay
 container_distribution_fallback: false  # Surface experimental-runtime failures.
-features:
-  plugins.oci_relay: false  # Use the editable installed adapter.
-integrations:
-  oci-relay: true
 plugins:
   oci-relay:
-    binary_paths:
-      windows/arm64: C:/relay/oci-relay.exe
-      linux/arm64: C:/relay/oci-relay-linux-arm64
-    binary_sha256:
-      windows/arm64: ACTUAL_WINDOWS_BINARY_SHA256
-      linux/arm64: ACTUAL_LINUX_BINARY_SHA256
     runtime_connections:
       controller:
         docker_context: desktop-linux
@@ -89,8 +73,8 @@ plugins:
     allow_preparation_read: true
 ```
 
-Use `windows/amd64` for an x64 controller. Executable architecture and image
-platform are separate: Linux ARM64 receivers still receive Linux ARM64 images.
+Executable architecture and image platform are separate: Linux ARM64 receivers
+still receive Linux ARM64 images, even from an x64 Windows controller.
 The context name must exist locally (`docker context ls`); omit
 `runtime_connections.controller` to use the controller's normal Docker default.
 The plugin chooses bounded `docker-save` for a VM source and preserves native
@@ -116,6 +100,6 @@ the Windows source attachment uses loopback TCP carrying the same end-to-end TLS
 stream; it does not use a Windows Unix socket. Direct HTTP/2 and SSH forwarding
 are also available.
 
-Windows release archives and hashes are not published yet. The native Windows
-qualification workflow produces candidate executables; a public release must
-wait for runtime qualification. Its Windows artifacts contain no Linux decoder.
+Windows release bundles use `.tar.gz` and contain `oci-relay.exe` and license
+notices. They do not include or require `unpigz`. Release archive checksums are
+pinned by the plugin. Standalone users can extract a bundle with Windows `tar`.

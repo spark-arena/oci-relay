@@ -26,14 +26,14 @@ jobs:
         uses: astral-sh/setup-uv@v10.0.1
 
       - name: Verify versions are in sync
-        run: uvx --from 'git+https://github.com/scitrera/repo-tools.git@898be3f3408a0da7d5dee81d8752c06d2ac7bf23' sync-versions --check --verbose
+        run: uvx --from 'git+https://github.com/scitrera/repo-tools.git@d4c2a585fd54e23a549ef61ada45de002beb79b0' sync-versions --check --verbose
 
       - name: Compare tag against versions.yaml
         if: github.ref_type == 'tag'
         run: |
           set -euo pipefail
           tag="${GITHUB_REF_NAME#v}"
-          declared="$(uvx --from 'git+https://github.com/scitrera/repo-tools.git@898be3f3408a0da7d5dee81d8752c06d2ac7bf23' sync-versions --print-version oci-relay)"
+          declared="$(uvx --from 'git+https://github.com/scitrera/repo-tools.git@d4c2a585fd54e23a549ef61ada45de002beb79b0' sync-versions --print-version oci-relay)"
           if [ "$tag" != "$declared" ]; then
             echo "::error::Tag ${GITHUB_REF_NAME} does not match the oci-relay version declared in versions.yaml ($declared)"
             exit 1
@@ -43,6 +43,9 @@ jobs:
   build-oci-relay:
     name: Build oci-relay (${{ matrix.goos }}/${{ matrix.goarch }})
     runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
     needs: [ tests, verify-tag ]
     strategy:
       # One unsupported target must not withhold the assets for every other
@@ -53,6 +56,8 @@ jobs:
           - { goos: linux, goarch: amd64, runner: ubuntu-24.04 }
           - { goos: linux, goarch: arm64, runner: ubuntu-24.04-arm }
           - { goos: darwin, goarch: arm64, runner: macos-15 }
+          - { goos: windows, goarch: amd64, runner: windows-2025 }
+          - { goos: windows, goarch: arm64, runner: windows-11-arm }
     steps:
       - uses: actions/checkout@v7
 
@@ -62,7 +67,14 @@ jobs:
           cache-dependency-path: ./go.sum
 
 
+      - name: Verify native runner architecture
+        run: |
+          test "$(go env GOHOSTOS)" = "${{ matrix.goos }}"
+          test "$(go env GOHOSTARCH)" = "${{ matrix.goarch }}"
+        working-directory: .
+
       - name: Check native build prerequisites
+        if: runner.os != 'Windows'
         run: |
           python3 --version && cc --version && make --version
         working-directory: .
@@ -75,7 +87,13 @@ jobs:
 
       - name: Test Go on the native target
         run: |
-          go test -race -count=1 ./...
+          if [ "$RUNNER_OS" = Windows ]; then
+            export CGO_ENABLED=0
+            go test -count=1 ./internal/engine ./internal/privatefs ./internal/image ./internal/transfer ./internal/peer
+            go test -count=1 ./internal/source -run 'TestArchive|TestClassicArchive|TestRegistry'
+          else
+            go test -race -count=1 ./...
+          fi
         working-directory: .
       - name: Build
         working-directory: .
@@ -85,6 +103,12 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           set -euo pipefail
+          # Native Windows runners use Git Bash for this POSIX build script.
+          # Normalize runner-provided Windows paths before invoking archive tools.
+          if [ "$RUNNER_OS" = Windows ]; then
+            GITHUB_WORKSPACE="$(cygpath -u "$GITHUB_WORKSPACE")"
+            RUNNER_TEMP="$(cygpath -u "$RUNNER_TEMP")"
+          fi
           # A dispatch run has no tag to read a version from, and must still
           # produce something identifiable rather than an asset called "".
           if [ "$GITHUB_REF_TYPE" = tag ]; then
@@ -105,14 +129,15 @@ jobs:
           cp "$GITHUB_WORKSPACE/THIRD_PARTY_NOTICES.md" "$stage/"
           cp "$GITHUB_WORKSPACE/THIRD_PARTY_LICENSES.txt" "$stage/"
           export BUNDLE_DIR="$stage" VERSION GOOS GOARCH
-          python3 scripts/build-decoder.py
+          if [ "$GOOS" = windows ]; then
+            "$BUNDLE_DIR/oci-relay.exe" version
+          else
+            python3 scripts/build-decoder.py
+          fi
           dist="$GITHUB_WORKSPACE/dist"
           mkdir -p "$dist"
           base="oci-relay_${VERSION}_${GOOS}_${GOARCH}"
-          case "$GOOS" in
-            windows) (cd "$stage" && zip -qr "$dist/$base.zip" .) ;;
-            *) tar -czf "$dist/$base.tar.gz" -C "$stage" . ;;
-          esac
+          tar -czf "$dist/$base.tar.gz" -C "$stage" .
           ls -l "$dist"
 
       - name: Upload oci-relay (${{ matrix.goos }}/${{ matrix.goarch }})
