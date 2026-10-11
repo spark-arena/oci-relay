@@ -62,10 +62,11 @@ one registration path and do not enable installed and bundled copies together.
 
 Sparkrun SSH execution hosts currently require Linux amd64/arm64. A Mac controller can
 coordinate delegated execution on Linux cluster nodes without running a relay
-locally; see [platforms and controller placement](platforms.md). Version 0.1.4
-adds Docker context/API connections for controller-local VM sources and
-experimental Windows x64/ARM64 bundles. Desktop and WSLC runtime qualification
-remains pending; see [Windows configuration](windows.md).
+locally; see [platforms and controller placement](platforms.md). The macOS arm64
+bundle remains available for standalone use; controller-local plugin sources on
+macOS are not enabled. Version 0.1.4 adds Docker context/API connections for
+Windows-local VM sources and experimental Windows x64/ARM64 bundles. Desktop
+and WSLC runtime qualification remains pending; see [Windows configuration](windows.md).
 
 For a locally supplied production binary, configure `binary_paths` and
 `binary_sha256` maps keyed by `OS/ARCH` (Linux also accepts `amd64`/`arm64`). The controller verifies the executable
