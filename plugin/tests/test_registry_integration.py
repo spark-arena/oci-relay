@@ -213,7 +213,7 @@ def test_registry_progress_visible_during_transfer(tmp_path, transport, caplog, 
 
     # Exercise live transport events without turning the default 30s display
     # cadence into a long-running integration fixture. Cadence has clock tests.
-    monkeypatch.setattr(provider, 'Progress', lambda image: Progress(image, interval=1))
+    monkeypatch.setattr(provider, 'Progress', lambda image, **kwargs: Progress(image, interval=1, **kwargs))
 
     fixture = RegistryFixture(size=1 << 20, layer_count=1, chunk_delay=0.25)
     config_file = tmp_path / 'docker-config.json'
