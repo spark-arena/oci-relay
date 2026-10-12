@@ -60,3 +60,17 @@ def test_older_host_keeps_text_output(monkeypatch, caplog):
     p = Progress('old-host-image')
     p.close(False, False)
     assert 'preparing old-host-image' in caplog.text
+
+
+def test_preparation_status_uses_explicit_feedback_on_callback_thread():
+    import logging
+    from sparkrun_oci_relay.progress import status
+
+    seen = []
+    with operation_scope(state=OperationState(events=seen.append)):
+        feedback = get_feedback("image-distribution")
+        thread = threading.Thread(target=lambda: status(logging.getLogger(__name__), "source", "checking image", feedback=feedback))
+        thread.start()
+        thread.join()
+    assert len(seen) == 1
+    assert seen[0]["source"] == "oci-relay" and seen[0]["stage"] == "source"
