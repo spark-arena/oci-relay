@@ -84,3 +84,9 @@ library subscribers use `sctx.events`, and daemon consumers follow the job's
 must not be treated as exact completion percentages. Older hosts retain text
 logging. The Sparkrun [feedback guide](https://github.com/spark-arena/sparkrun/blob/main/docs/FEEDBACK.md)
 describes the public contract.
+
+## Diagnostic bundles
+
+When Sparkrun diagnostic capture is enabled, the plugin contributes source and transport decisions, failure tails before receiver cleanup, and transfer/cleanup outcomes. Snapshots select bounded state already available during the operation; they do not add remote probes or per-chunk reporting.
+
+Use `sparkrun.api.capture_diagnostics(...)` around library operations, or `collect_diagnostics: true` on supported daemon jobs. The host owns redaction, bundle limits, access, and retention. Existing structured feedback continues to provide live progress. With capture disabled, snapshot builders do not run. Hosts without the optional diagnostics API retain normal plugin behavior. See the [Sparkrun diagnostics API](https://github.com/spark-arena/sparkrun/blob/main/docs/DIAGNOSTICS_API.md) for the capture interface.
