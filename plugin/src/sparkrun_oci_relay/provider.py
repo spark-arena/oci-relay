@@ -448,7 +448,7 @@ class RelayProvider:
                 diag.snapshot("source_selection", lambda: {
                     "image": request.image[:512], "mode": selection.mode,
                     "reason": selection.reason[:512], "receivers": len(request.targets),
-                    "source_limits": source_limits,
+                    "source_limits": {key: value for key, value in source_limits.items()},
                 }, host=source_host, stage="discovery")
             settings = dict(settings, source_mode=selection.mode)
             mark("discovery")
@@ -600,7 +600,7 @@ class RelayProvider:
                         logger.info("OCI Relay uses stdio for %s after route preflight: %s", host, "; ".join(errors))
                 target_routes[identity] = chosen
                 if diag is not None and diag.enabled:
-                    diag.snapshot("route_selection", lambda: {
+                    diag.snapshot("route_selection", lambda chosen=chosen: {
                         "transport": chosen[0], "fallback_reasons": [e[-512:] for e in errors[:8]],
                     }, host=host, stage="preflight")
                 logger.info("OCI Relay route %s -> %s: %s", source_host or "controller", host, chosen[0])
